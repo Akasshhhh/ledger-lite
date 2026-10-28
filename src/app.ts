@@ -2,13 +2,14 @@ import express, { type ErrorRequestHandler } from 'express';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { ZodError } from 'zod';
 import { AppError } from './shared';
+import { accountsRouter } from './accounts';
 
-export function createApp(_db: PrismaClient) {
+export function createApp(db: PrismaClient) {
   const app = express();
   app.disable('x-powered-by');
   app.set('query parser', 'simple');
   app.use(express.json({ limit: '16kb' }));
-  // Root registers feature routers here once their tests pass.
+  app.use(accountsRouter(db));
   app.use((_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'Endpoint not found')));
   const errors: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof ZodError) {

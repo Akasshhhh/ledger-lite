@@ -50,7 +50,7 @@ Agents A/B/C run concurrently only after foundation is frozen. Shared directory,
 - [x] Inspected empty directory and Git state; saved full original assignment (preserving original missing section 6).
 - [x] Saved executable plan and frozen contracts before feature implementation.
 - [x] Foundation verified: Prisma generation/validation, fresh migration and idempotent reapply, typecheck/build, 3 foundation tests. Patched tooling dependencies; npm install audit reports zero vulnerabilities.
-- [ ] Accounts verified and committed.
+- [x] Accounts verified: all 18 HTTP tests passed; committed with route wiring.
 - [ ] Transaction writes verified and committed.
 - [ ] History verified and committed.
 - [ ] Mandatory integrity suite passed.
