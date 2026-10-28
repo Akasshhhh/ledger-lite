@@ -4,7 +4,7 @@
 The directory was empty, with no Git repository, application, tests, secrets, or repository instructions. Preserve the directory name. Initialize Git here; root alone creates commits. Node 24.2.0 and npm 11.4.1 are available.
 
 ## Stack and architecture
-Node.js >=22, TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest, Supertest. Small feature routers with injected PrismaClient; no frontend or authentication subsystem. Integer minor units persisted; API accepts JSON numbers with at most two decimals and returns numbers in major units. Bound amount and resulting balance to 2,147,483,647 minor units (Prisma Int range).
+Node.js >=22, TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest 5, Supertest. Small feature routers with injected PrismaClient; no frontend or authentication subsystem. Integer minor units persisted; API accepts JSON numbers with at most two decimals and returns numbers in major units. Bound amount and resulting balance to 2,147,483,647 minor units (Prisma Int range).
 
 ## Frozen schema and contracts
 - Account: UUID `id`, required trimmed `name`, `balance` integer default zero, `created_at` system timestamp.
@@ -23,7 +23,7 @@ Node.js >=22, TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest, Supertest. S
 | Priority / milestone | Owner | Exclusive files | Dependencies / acceptance |
 |---|---|---|---|
 | P0 source and plan | root | docs/ASSIGNMENT_SOURCE.md, docs/IMPLEMENTATION_PLAN.md | Save before implementation |
-| P0 foundation | root | package*, tsconfig*, vitest*, prisma/**, src/app.ts, src/server.ts, src/db.ts, src/shared.ts, tests/helpers.ts, tests/foundation.test.ts, .gitignore, .env.example | migration, generated client, typecheck and foundation checks pass |
+| P0 foundation | root | package*, tsconfig*, vitest*, prisma/**, src/app.ts, src/server.ts, src/db.ts, src/shared.ts, tests/helpers.ts, tests/foundation.test.ts, scripts/migrate.cjs, .gitignore, .env.example | migration, generated client, typecheck and foundation checks pass |
 | P0 accounts | agent A | src/accounts.ts, tests/accounts.test.ts | foundation; required names, forced zero, IDs/times, correct reads/404; tests pass |
 | P0/P1 transaction writes | agent B | src/transactions.ts, tests/transactions.test.ts | foundation; atomic credit/debit, unique refs, no overdraft, safe validation/errors; tests pass |
 | P0 history | agent C | src/history.ts, tests/history.test.ts | foundation; filters, deterministic latest first, bounded pagination, metadata, missing accounts; tests pass |
@@ -49,7 +49,7 @@ Agents A/B/C run concurrently only after foundation is frozen. Shared directory,
 ## Progress
 - [x] Inspected empty directory and Git state; saved full original assignment (preserving original missing section 6).
 - [x] Saved executable plan and frozen contracts before feature implementation.
-- [ ] Foundation verified.
+- [x] Foundation verified: Prisma generation/validation, fresh migration and idempotent reapply, typecheck/build, 3 foundation tests. Patched tooling dependencies; npm install audit reports zero vulnerabilities.
 - [ ] Accounts verified and committed.
 - [ ] Transaction writes verified and committed.
 - [ ] History verified and committed.
