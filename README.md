@@ -1,16 +1,14 @@
 # LedgerLite
 
-A local backend assessment API for account balances, atomic transfers, and an immutable transaction history. Credits and debits persist atomically in SQLite, with per-account duplicate protection and conditional updates that prevent concurrent overdrafts.
+A transaction ledger API for creating accounts, posting credits and debits, transferring funds, and querying balances and history. Built as a backend assessment, with atomic money movement and database-enforced integrity.
+
+**Stack:** TypeScript · Express 5 · Prisma 6 · SQLite · Zod · Vitest · Supertest
 
 ## Requirements
 
-Node.js 24.x is recommended (verified with 24.2.0); the tooling also supports Node 22.13+ and >=26. npm is required. No external database server is needed.
-
-Stack: TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest 5, and Supertest.
+Node.js 24.x recommended; supported versions: 22.x (>=22.13), 24.x, or >=26 (see `package.json`). npm and curl are used below. No database server is required.
 
 ## Installation
-
-Run from the project root:
 
 ```sh
 npm ci
@@ -18,7 +16,7 @@ npm ci
 
 ## Configuration
 
-Copy the safe example only when `.env` does not already exist:
+Run from the repository root; preserve any existing `.env`:
 
 ```sh
 cp -n .env.example .env
@@ -26,52 +24,84 @@ npm run db:generate
 npm run db:migrate
 ```
 
-`DATABASE_URL` defaults to `file:./dev.db` in the server and migration script. Relative SQLite paths resolve under `prisma/`; the default database is `prisma/dev.db`. `HOST` defaults to `127.0.0.1`; `PORT` defaults to `3000`. Prisma's generate/validate CLI commands read `.env` directly. The migration script creates the database file if necessary and applies the checked-in SQL migration without resetting data. Do not use `prisma db push`: the migration contains additional SQL CHECK constraints.
+Defaults: `DATABASE_URL="file:./dev.db"`, `HOST="127.0.0.1"`, `PORT=3000`. The database is `prisma/dev.db`. No credentials are required. If port 3000 is occupied, set `PORT=3217` in `.env` and update `BASE_URL` below.
 
-## Quick start
+## Run locally
 
 ```sh
 npm run build
 npm start
 ```
 
-For development, run `npm run dev` instead. Stop with Ctrl+C.
+Use `npm run dev` for development with automatic restarts. Keep the server running while trying the examples.
 
-Create an account and copy the returned `data.id` into `ACCOUNT_ID`:
+## Key features
 
-```sh
-curl -sS http://127.0.0.1:3000/accounts \
-  -H 'Content-Type: application/json' -d '{"name":"Main account"}'
+- **Atomic mutations:** balance updates and ledger entries commit together; transfers include both accounts and both entries.
+- **Duplicate prevention:** a unique `(account_id, reference_id)` constraint prevents repeated financial effects; duplicates return `409`.
+- **Concurrency-safe debits:** conditional database updates prevent overdrafts, including concurrent requests through independent clients.
+- **Immutable history through the API:** no transaction update/delete routes; reads support type filtering, bounded pagination, and latest-first ordering.
 
-ACCOUNT_ID='paste-the-returned-UUID-here'
-curl -sS http://127.0.0.1:3000/transactions \
-  -H 'Content-Type: application/json' \
-  -d "{\"account_id\":\"$ACCOUNT_ID\",\"type\":\"credit\",\"amount\":100,\"reference_id\":\"deposit-1\"}"
-curl -sS http://127.0.0.1:3000/transactions \
-  -H 'Content-Type: application/json' \
-  -d "{\"account_id\":\"$ACCOUNT_ID\",\"type\":\"debit\",\"amount\":30,\"reference_id\":\"purchase-1\"}"
-curl -sS "http://127.0.0.1:3000/accounts/$ACCOUNT_ID/balance"
-curl -sS "http://127.0.0.1:3000/accounts/$ACCOUNT_ID/transactions?type=debit&page=1&limit=20"
+## Architecture
+
+```mermaid
+flowchart LR
+    Client[HTTP client] --> API[Express + Zod validation]
+    API --> Routes[Account / transaction / history / transfer routes]
+    Routes --> Prisma[Prisma ORM]
+    Prisma --> DB[(SQLite: accounts + transactions)]
 ```
 
-The resulting balance is `70`. Repeating a reference for that account returns `409` without another financial effect.
+## Design decisions
+
+- **Integer money storage:** persist cents; accept and return major-unit JSON numbers with at most two decimal places. Amounts and balances are capped at 21,474,836.47.
+- **Database enforcement:** foreign keys, uniqueness, and SQL CHECK constraints complement input validation. Use `db:migrate`; `prisma db push` does not preserve the custom checks.
+- **Small, local scope:** feature modules share validation and consistent JSON errors. No frontend or authentication; access control is required before public financial use.
+
+## Try the API
+
+In a second terminal, create an account and capture its generated ID using Node.js:
+
+```sh
+BASE_URL=http://127.0.0.1:3000
+ACCOUNT_ID=$(curl -fsS "$BASE_URL/accounts" \
+  -H 'Content-Type: application/json' -d '{"name":"Main account"}' \
+  | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).data.id')
+
+curl -fsS "$BASE_URL/transactions" -H 'Content-Type: application/json' \
+  -d "{\"account_id\":\"$ACCOUNT_ID\",\"type\":\"credit\",\"amount\":100,\"reference_id\":\"deposit-1\"}"
+curl -fsS "$BASE_URL/transactions" -H 'Content-Type: application/json' \
+  -d "{\"account_id\":\"$ACCOUNT_ID\",\"type\":\"debit\",\"amount\":30,\"reference_id\":\"purchase-1\"}"
+curl -fsS "$BASE_URL/accounts/$ACCOUNT_ID/balance"
+curl -fsS "$BASE_URL/accounts/$ACCOUNT_ID/transactions?type=debit&page=1&limit=20"
+```
+
+The balance is `70`; filtered history contains one debit. Repeating `deposit-1` for that account returns `409 DUPLICATE_REFERENCE` without changing its balance. Successful responses use `{ "data": ... }`; errors use `{ "error": { "code": ..., "message": ... } }`.
+
+## Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/accounts` | Create an account with zero balance |
+| GET | `/accounts/:accountId/balance` | Read the current balance |
+| POST | `/transactions` | Post a credit or debit |
+| GET | `/accounts/:accountId/transactions` | Filter and paginate history |
+| POST | `/transfers` | Transfer funds atomically between accounts |
 
 ## Verification
 
 ```sh
-npm run db:validate
+npm test
 npm run typecheck
 npm run build
-npm test
+npm run db:validate
 ```
 
-Tests use isolated temporary SQLite files with the actual migration, not a mocked database. They include failed-write rollback, database constraints, duplicate races, and concurrent debits through independent database clients. Node may print an experimental warning for its built-in SQLite test helper. There is no separate linter configured; TypeScript checking is available above.
+**Verified: 106 tests passed across six files; zero failures.** Tests use real temporary SQLite databases and the checked-in migration. Coverage includes decimal precision, duplicate races, concurrent debits/transfers, immutable API records, database constraints, and injected insert failures that verify complete rollback. Type checking, build, and schema validation also pass. Node may emit an experimental SQLite warning from the test helper.
 
 ## Documentation
 
-- [Original assignment](docs/ASSIGNMENT_SOURCE.md)
-- [Implementation plan and verification progress](docs/IMPLEMENTATION_PLAN.md)
-- [API reference](docs/API.md)
+- [API reference and transfer examples](docs/API.md)
 - [Assumptions and limitations](docs/ASSUMPTIONS.md)
-
-This local assessment has no authentication or authorization. Public financial use requires access control and operational safeguards.
+- [Original assignment](docs/ASSIGNMENT_SOURCE.md)
+- [Implementation plan and verification record](docs/IMPLEMENTATION_PLAN.md)
