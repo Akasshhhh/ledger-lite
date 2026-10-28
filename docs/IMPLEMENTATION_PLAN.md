@@ -54,5 +54,5 @@ Agents A/B/C run concurrently only after foundation is frozen. Shared directory,
 - [x] Transaction writes verified: all 35 HTTP tests passed; committed with route wiring.
 - [x] History verified: all 25 HTTP tests passed; committed with route wiring.
 - [x] Mandatory integrity suite passed: 88 tests across five files, including injected insert failure rollback, separate-client debit/duplicate races, SQL constraints and immutable API records. Typecheck/build passed.
-- [ ] Documentation and startup verified.
+- [x] Documentation and startup verified: README configuration/build/start workflow, real HTTP create/credit/debit/balance/duplicate/history smoke; Markdown links checked and assignment source compared byte-for-byte with supplied original section.
 - [ ] Optional transfers decision and final verification.
