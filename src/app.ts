@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import { ZodError } from 'zod';
 import { AppError } from './shared';
 import { accountsRouter } from './accounts';
+import { transactionsRouter } from './transactions';
 
 export function createApp(db: PrismaClient) {
   const app = express();
@@ -10,6 +11,7 @@ export function createApp(db: PrismaClient) {
   app.set('query parser', 'simple');
   app.use(express.json({ limit: '16kb' }));
   app.use(accountsRouter(db));
+  app.use(transactionsRouter(db));
   app.use((_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'Endpoint not found')));
   const errors: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof ZodError) {
