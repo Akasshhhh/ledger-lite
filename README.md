@@ -1,10 +1,10 @@
 # LedgerLite
 
-A local backend assessment API for account balances and an immutable transaction history. Credits and debits persist atomically in SQLite, with per-account duplicate protection and conditional updates that prevent concurrent overdrafts.
+A local backend assessment API for account balances, atomic transfers, and an immutable transaction history. Credits and debits persist atomically in SQLite, with per-account duplicate protection and conditional updates that prevent concurrent overdrafts.
 
 ## Requirements
 
-Node.js 24.x is recommended (verified with 24.2.0); the tooling also supports Node 22.12+ and >=26. npm is required. No external database server is needed.
+Node.js 24.x is recommended (verified with 24.2.0); the tooling also supports Node 22.13+ and >=26. npm is required. No external database server is needed.
 
 Stack: TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest 5, and Supertest.
 

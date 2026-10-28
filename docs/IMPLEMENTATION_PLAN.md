@@ -4,7 +4,7 @@
 The directory was empty, with no Git repository, application, tests, secrets, or repository instructions. Preserve the directory name. Initialize Git here; root alone creates commits. Node 24.2.0 and npm 11.4.1 are available.
 
 ## Stack and architecture
-Node.js 22.12+, 24.x, or >=26, TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest 5, Supertest. Small feature routers with injected PrismaClient; no frontend or authentication subsystem. Integer minor units persisted; API accepts JSON numbers with at most two decimals and returns numbers in major units. Bound amount and resulting balance to 2,147,483,647 minor units (Prisma Int range).
+Node.js 22.13+, 24.x, or >=26, TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest 5, Supertest. Small feature routers with injected PrismaClient; no frontend or authentication subsystem. Integer minor units persisted; API accepts JSON numbers with at most two decimals and returns numbers in major units. Bound amount and resulting balance to 2,147,483,647 minor units (Prisma Int range).
 
 ## Frozen schema and contracts
 - Account: UUID `id`, required trimmed `name`, `balance` integer default zero, `created_at` system timestamp.
@@ -55,4 +55,29 @@ Agents A/B/C run concurrently only after foundation is frozen. Shared directory,
 - [x] History verified: all 25 HTTP tests passed; committed with route wiring.
 - [x] Mandatory integrity suite passed: 88 tests across five files, including injected insert failure rollback, separate-client debit/duplicate races, SQL constraints and immutable API records. Typecheck/build passed.
 - [x] Documentation and startup verified: README configuration/build/start workflow, real HTTP create/credit/debit/balance/duplicate/history smoke; Markdown links checked and assignment source compared byte-for-byte with supplied original section.
-- [ ] Optional transfers decision and final verification.
+- [x] Transfer bonus implemented after mandatory acceptance: all 18 transfer tests passed, including second-entry failure rollback and independent-client races.
+- [x] Final clean-install verification and Git audit: 106 tests passed; zero failed; typecheck/build/schema validation passed; fresh migration and reapply passed; built-server transfer smoke passed; npm audit reported zero vulnerabilities; only intended source/docs/config tracked. No remote push.
+
+
+## Final verification record (28 October 2026)
+
+Executed successfully with Node 24.2.0 and npm 11.4.1:
+
+```sh
+npm ci --fetch-retries=0 --fetch-timeout=20000
+DATABASE_URL=file:./dev.db npm run db:generate
+DATABASE_URL=file:./dev.db npm run db:validate
+DATABASE_URL=file:/private/tmp/ledgerlite-final-check.db npm run db:migrate
+DATABASE_URL=file:/private/tmp/ledgerlite-final-check.db npm run db:migrate
+npm run typecheck
+npm run build
+npm test
+npm audit --audit-level=low
+git diff --check
+```
+
+- Targeted suites: `npx vitest run tests/foundation.test.ts` (3), `tests/accounts.test.ts` (18), `tests/transactions.test.ts` (35), `tests/history.test.ts` (25), and `tests/transfers.test.ts` (18). Full suite: six files, 106 tests, all passed; integrity file adds seven cross-feature tests.
+- Actual startup: `HOST=127.0.0.1 PORT=3217 DATABASE_URL=file:/private/tmp/ledgerlite-migration-check.db npm start`; HTTP requests from a Node assert/fetch smoke script verified account creation, credit 100, debit 30, balance 70, duplicate conflict, filtered history.
+- Final startup: `HOST=127.0.0.1 PORT=3217 DATABASE_URL=file:/private/tmp/ledgerlite-final-check.db npm start`; a second Node assert/fetch script verified balances 100/50 transferring to 70/80, duplicate prevention, and source debit history. Both temporary servers were stopped.
+- Fresh-file migrations applied once and returned no pending migrations on reapply. Temporary fixture databases are outside tracked files; local runtime databases/build output/node_modules are ignored. README relative links checked; original assessment section matched against supplied source. No separate Markdown linter or application linter is configured.
+- Final independent read-only review found no concrete blockers. Sustained multi-process load and abrupt process termination were not tested. The API is a local assessment with no authentication/authorization; these limits are documented in ASSUMPTIONS.md.

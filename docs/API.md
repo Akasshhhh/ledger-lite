@@ -104,3 +104,21 @@ Response `200`:
 ```
 
 `total` counts matching records for this account and filter. Empty results have zero total pages. A page beyond the last page returns an empty array with unchanged totals. Rows sort by `created_at DESC`, then `id DESC` for deterministic timestamp ties. Count and rows are read together within one database transaction. Separate page requests can see new entries inserted between requests; offset pagination is not a multi-request snapshot. Missing accounts return `404`, even if no history exists.
+
+## POST /transfers (bonus)
+
+```json
+{
+  "source_account_id":"499e609e-57fe-4702-8ce0-77ec58cc1ccf",
+  "destination_account_id":"ce3594e6-359a-499c-8c64-07c183d0ef83",
+  "amount":30,
+  "reference_id":"transfer-1",
+  "description":"Move funds"
+}
+```
+
+Both UUIDs must identify existing, different accounts. Amount, reference, and optional description follow the transaction validation rules. A reference must be unused in both participating accounts, including references used by ordinary transactions.
+
+Response `201` is `{ "data": { "source_transaction": { ... }, "destination_transaction": { ... } } }`. Each value is a complete transaction object as documented above: the source is a debit, the destination is a credit, and both have the same amount, reference, description, and timestamp, with distinct IDs. Both appear in their account histories. There is no additional transfer table/ID.
+
+Starting balances of 100 and 50 become 70 and 80 after a transfer of 30. Both balance changes and both history entries share one transaction. Missing accounts return `404`; insufficient source funds, a duplicate reference on either side, or a destination balance overflow return `409`; same-account transfers return `400`. Every failure rolls back all changes, including a failure inserting the second ledger entry. Repeating a successful transfer returns `409 DUPLICATE_REFERENCE` without moving funds again. Reusing the reference for a completely different pair of accounts is permitted.
