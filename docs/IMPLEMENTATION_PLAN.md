@@ -4,7 +4,7 @@
 The directory was empty, with no Git repository, application, tests, secrets, or repository instructions. Preserve the directory name. Initialize Git here; root alone creates commits. Node 24.2.0 and npm 11.4.1 are available.
 
 ## Stack and architecture
-Node.js >=22, TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest 5, Supertest. Small feature routers with injected PrismaClient; no frontend or authentication subsystem. Integer minor units persisted; API accepts JSON numbers with at most two decimals and returns numbers in major units. Bound amount and resulting balance to 2,147,483,647 minor units (Prisma Int range).
+Node.js 22.12+, 24.x, or >=26, TypeScript, Express 5, Prisma 6, SQLite, Zod, Vitest 5, Supertest. Small feature routers with injected PrismaClient; no frontend or authentication subsystem. Integer minor units persisted; API accepts JSON numbers with at most two decimals and returns numbers in major units. Bound amount and resulting balance to 2,147,483,647 minor units (Prisma Int range).
 
 ## Frozen schema and contracts
 - Account: UUID `id`, required trimmed `name`, `balance` integer default zero, `created_at` system timestamp.
@@ -53,6 +53,6 @@ Agents A/B/C run concurrently only after foundation is frozen. Shared directory,
 - [x] Accounts verified: all 18 HTTP tests passed; committed with route wiring.
 - [x] Transaction writes verified: all 35 HTTP tests passed; committed with route wiring.
 - [x] History verified: all 25 HTTP tests passed; committed with route wiring.
-- [ ] Mandatory integrity suite passed.
+- [x] Mandatory integrity suite passed: 88 tests across five files, including injected insert failure rollback, separate-client debit/duplicate races, SQL constraints and immutable API records. Typecheck/build passed.
 - [ ] Documentation and startup verified.
 - [ ] Optional transfers decision and final verification.

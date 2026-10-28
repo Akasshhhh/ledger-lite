@@ -24,6 +24,10 @@ export function createApp(db: PrismaClient) {
       res.status(error.status).json({ error: { code: error.code, message: error.message, ...(error.details === undefined ? {} : { details: error.details }) } });
       return;
     }
+    if (error instanceof URIError && (error as URIError & { status?: number }).status === 400) {
+      res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid URL encoding' } });
+      return;
+    }
     if (error?.type === 'entity.parse.failed' || error?.type === 'entity.too.large' || error?.status === 415) {
       res.status(error.type === 'entity.too.large' ? 413 : 400).json({ error: { code: 'INVALID_BODY', message: 'Request body must be valid JSON within 16kb' } });
       return;
